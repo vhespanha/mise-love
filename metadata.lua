@@ -4,29 +4,20 @@
 
 PLUGIN = { -- luacheck: ignore
     -- Required: Plugin metadata name
-    name = "<TOOL>",
+    name = "love",
 
     -- Required: Plugin metadata version
     version = "1.0.0",
 
     -- Optional: Plugin description
-    description = "A mise tool plugin for <TOOL>",
+    description = "A mise tool plugin for LÖVE (love2d), the 2D game framework for Lua",
 
     -- Optional: Plugin author
-    author = "<GITHUB_USER>",
+    author = "vhespanha",
 
     -- Optional: License name
     license = "MIT",
 
     -- Optional: Plugin homepage
-    homepage = "https://github.com/<GITHUB_USER>/mise-<TOOL>",
-
-    -- Optional: Legacy version files this plugin can parse
-    -- legacyFilenames = {
-    --     ".<TOOL>-version",
-    --     ".<TOOL>rc"
-    -- },
-
-    -- Optional: configured mise tools to add to install-hook PATH
-    -- depends = { "node" },
+    homepage = "https://github.com/vhespanha/mise-love",
 }

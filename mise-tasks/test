@@ -2,17 +2,36 @@
 #MISE description="Run plugin tests - install and execute tool"
 set -euo pipefail
 
-mise plugin link --force <TOOL> .
+version="11.5"
+
+mise plugin link --force love .
 mise cache clear
-mise install <TOOL>@1.0.0
+mise install "love@$version"
+
+# love.exe on Windows is a GUI app without console output, lovec.exe is its console twin
+bin="love"
+case "$(uname -s)" in
+MINGW* | MSYS* | CYGWIN*) bin="lovec" ;;
+esac
 
 # Capture and display the output while also verifying it
-output=$(mise exec "<TOOL>@1.0.0" -- "<TOOL>" --version)
-echo "<TOOL> output: $output"
+output=$(mise exec "love@$version" -- "$bin" --version)
+echo "love output: $output"
 
-if echo "$output" | grep -q '<TOOL>@1.0.0'; then
-    echo "✓ Tests passed"
+if echo "$output" | grep -q "LOVE $version"; then
+    echo "✓ Version check passed"
 else
-    echo "✗ Test failed: expected version <TOOL>@1.0.0"
+    echo "✗ Test failed: expected LOVE $version"
     exit 1
 fi
+
+# Only versions with prebuilt binaries are listed
+versions=$(mise ls-remote love)
+if echo "$versions" | grep -qx "11.0" && ! echo "$versions" | grep -qx "0.10.2"; then
+    echo "✓ Version listing passed"
+else
+    echo "✗ Test failed: expected 11.0 to be listed and 0.10.2 not to be"
+    exit 1
+fi
+
+echo "✓ Tests passed"
