@@ -13,12 +13,19 @@ function PLUGIN:PostInstall(ctx)
         return "'" .. s:gsub("'", "'\\''") .. "'"
     end
 
-    --- Writes bin/love, a wrapper that runs `target` (relative to the install root)
-    local function write_wrapper(target)
+    --- Writes bin/love, a wrapper that runs `target` (relative to the install root),
+    --- with an optional shell `preamble` run before it
+    local function write_wrapper(target, preamble)
         local bin = file.join_path(root, "bin", "love")
         cmd.exec("mkdir -p " .. quote(file.join_path(root, "bin")))
         local f = assert(io.open(bin, "w"))
-        f:write('#!/bin/sh\nroot=$(cd "$(dirname "$0")/.." && pwd -P)\nexec "$root/' .. target .. '" "$@"\n')
+        f:write(
+            '#!/bin/sh\nroot=$(cd "$(dirname "$0")/.." && pwd -P)\n'
+                .. (preamble or "")
+                .. 'exec "$root/'
+                .. target
+                .. '" "$@"\n'
+        )
         f:close()
         cmd.exec("chmod +x " .. quote(bin))
         return bin
@@ -37,12 +44,27 @@ function PLUGIN:PostInstall(ctx)
             file.move(file.join_path(root, "squashfs-root"), appdir)
             os.remove(images[1])
         end
+        -- The bundled SDL is built without Wayland support, so MISE_LOVE_SYSTEM_SDL=1 preloads
+        -- the system's libSDL2 instead. The AppImage launchers only touch LD_LIBRARY_PATH, so
+        -- LD_PRELOAD reaches the love binary. ldconfig tags 64-bit libraries "libc6,x86-64".
+        local abi = RUNTIME.archType == "amd64" and "libc6,x86-64[,)]" or "libc6(\\)|, )"
+        local preamble = [[
+if [ "${MISE_LOVE_SYSTEM_SDL:-}" = 1 ]; then
+    sdl=$({ ldconfig -p || /sbin/ldconfig -p; } 2>/dev/null |
+        awk '$1 == "libSDL2-2.0.so.0" && /\(]] .. abi .. [[/ { print $NF; exit }')
+    if [ -n "$sdl" ]; then
+        export LD_PRELOAD="$sdl${LD_PRELOAD:+:$LD_PRELOAD}"
+    else
+        echo "love: no system libSDL2-2.0.so.0 found, using the bundled SDL" >&2
+    fi
+fi
+]]
         -- Before 11.4 the AppImage ships a love launcher script and a compiled AppRun that
         -- mangles PATH, so run the launcher directly
         if file.exists(file.join_path(appdir, "love")) then
-            bin = write_wrapper("love.AppDir/love")
+            bin = write_wrapper("love.AppDir/love", preamble)
         else
-            bin = write_wrapper("love.AppDir/AppRun")
+            bin = write_wrapper("love.AppDir/AppRun", preamble)
         end
     elseif os_name == "darwin" then
         -- mise strips the archive's single top-level love.app directory, so put the bundle back together
