@@ -22,6 +22,8 @@ The plugin installs the official prebuilt binaries from [LÖVE's GitHub releases
 | macOS (Intel and Apple Silicon) | `macos.zip` | `love.app/`, with `bin/love` as a launcher |
 | Windows x64, x86 | `win64.zip` / `win32.zip` | `love.exe` and `lovec.exe` |
 
+The SDL bundled in LÖVE's AppImages is built without Wayland support, so on a Wayland session LÖVE runs through XWayland, and fails if `SDL_VIDEODRIVER=wayland` is set. To run natively on Wayland, install your distribution's SDL2 and set `MISE_LOVE_SYSTEM_SDL=1`: `bin/love` then preloads the system `libSDL2-2.0.so.0`, found with `ldconfig`. If none is found it warns and uses the bundled SDL.
+
 LÖVE doesn't publish Linux ARM builds. On those machines, use your system package manager or build from source.
 
 On Windows `love.exe` is a GUI program and prints nothing to the console. Use `lovec.exe` when you need console output, for example `lovec --version`.
